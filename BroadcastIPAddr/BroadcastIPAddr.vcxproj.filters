@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="interface">
+      <UniqueIdentifier>{6d4803be-2255-4f3c-afb1-d0533b7f6d8a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp">
@@ -30,6 +33,12 @@
     <ClCompile Include="Broadcast.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="BroadcastIPAddrClient.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BroadcastIPAddrServer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BroadcastClient.h">
@@ -43,6 +52,18 @@
     </ClInclude>
     <ClInclude Include="Broadcast.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BroadcastIPAddrClient.h">
+      <Filter>interface</Filter>
+    </ClInclude>
+    <ClInclude Include="BroadcastIPAddrServer.h">
+      <Filter>interface</Filter>
+    </ClInclude>
+    <ClInclude Include="BroadcastErrorCode.h">
+      <Filter>interface</Filter>
+    </ClInclude>
+    <ClInclude Include="BroadcastComDefine.h">
+      <Filter>interface</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

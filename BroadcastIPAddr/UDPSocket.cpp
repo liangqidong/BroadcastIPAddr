@@ -1,4 +1,6 @@
 #include "UDPSocket.h"
+#include "BroadcastErrorCode.h"
+
 #include <Iphlpapi.h>
 #pragma comment(lib,"Iphlpapi.lib")
 
@@ -11,7 +13,7 @@ UDPSocket::UDPSocket()
 	// Æô¶¯socket api   
 	wVersionRequested = MAKEWORD(2, 2);
 	err = WSAStartup(wVersionRequested, &wsaData);
-	if (err != 0)
+	if (err != BEC_SUCCESS)
 	{
 		return;
 	}
@@ -43,6 +45,7 @@ UDPSocket::UDPSocket()
 
 UDPSocket::~UDPSocket()
 {
+	closesocket(m_clientSocket);
 	closesocket(m_serverSocket); 
 	WSACleanup();
 }
@@ -50,13 +53,13 @@ UDPSocket::~UDPSocket()
 long UDPSocket::SetSendPort(unsigned int port)
 {
 	m_sendPort = port;
-	return 0;
+	return BEC_SUCCESS;
 }
 
 long UDPSocket::SetReceivePort(unsigned int port)
 {
 	m_receivePort = port;
-	return 0;
+	return BEC_SUCCESS;
 }
 
 long UDPSocket::bindSocket()
@@ -73,10 +76,10 @@ long UDPSocket::bindSocket()
 	{
 		err = WSAGetLastError();
 		printf("\"bind\" error! error code is %d\n", err);
-		return -1;
+		return BEC_FAIL_BIND_SOCKET;
 	}
 	m_bindSocket = true;
-	return 0;
+	return BEC_SUCCESS;
 }
 
 long UDPSocket::SendData(const char* data, unsigned int& dataLen, unsigned long addr)
@@ -106,7 +109,7 @@ long UDPSocket::SendData(const char* data, unsigned int& dataLen, unsigned long 
 		{
 			int err = WSAGetLastError();
 			printf("\"SendData setsockopt\" error! error code is %d\n", err);
-			return -1;
+			return BEC_FAIL_SET_SOCKETOPT;
 		}
 	}
 
@@ -115,9 +118,9 @@ long UDPSocket::SendData(const char* data, unsigned int& dataLen, unsigned long 
 	{
 		int err = WSAGetLastError();
 		printf("\"sendto\" error! error code is %d\n", err);
-		return -1;
+		return BEC_FAIL_SEND_DATA;
 	}
-	return 0;
+	return BEC_SUCCESS;
 }
 
 long UDPSocket::RecvData(char* data, unsigned int& dataLen, unsigned int timeout)
@@ -137,18 +140,15 @@ long UDPSocket::RecvData(char* data, unsigned int& dataLen, unsigned int timeout
 		if (SOCKET_ERROR == dataLen)
 		{
 			printf("received data error!\n");
-			return -1;
-		}
-		if (SOCKET_ERROR == dataLen)
-		{
-			return -1;
+			return BEC_FAIL_REC_DATA;
 		}
 	}
 	else
 	{
-		return -1;
+		dataLen = 0;
+		return BEC_SUCCESS;
 	}
-	return 0;
+	return BEC_SUCCESS;
 }
 
 long UDPSocket::GetLocalIP(char* ip, unsigned int& dataLen)
@@ -156,18 +156,18 @@ long UDPSocket::GetLocalIP(char* ip, unsigned int& dataLen)
 	
 	char hostname[256] = { 0 };
 	int ret = gethostname(hostname, sizeof(hostname));
-	if (ret == SOCKET_ERROR)
+	if (SOCKET_ERROR == ret)
 	{
-		return -1;
+		return BEC_FAIL_GET_HOST_NAME;
 	}
 	
 	HOSTENT* host = gethostbyname(hostname);
-	if (host == NULL)
+	if (NULL == host)
 	{
-		return -1;
+		return BEC_FAIL_GET_HOST_IP;
 	}
 	strcpy_s(ip, dataLen,inet_ntoa(*(in_addr*)*host->h_addr_list));
-	return 0;
+	return BEC_SUCCESS;
 }
 
 long UDPSocket::GetLocalIPs(IPInfo* ips, int& ipNum)
@@ -209,18 +209,18 @@ long UDPSocket::GetLocalIPs(IPInfo* ips, int& ipNum)
 		delete pIpAdapterInfo;
 	}
 	ipNum = i;
-	return 0;
+	return BEC_SUCCESS;
 }
 
 long UDPSocket::GetSocketIP(char* ip, unsigned int& dataLen)
 {
 	strcpy_s(ip, dataLen,inet_ntoa(m_peeraddr.sin_addr));
-	return 0;
+	return BEC_SUCCESS;
 }
 
 long UDPSocket::GetSocketPort(unsigned int& port)
 {
 	port = ntohs(m_peeraddr.sin_port);
-	return 0;
+	return BEC_SUCCESS;
 }
 

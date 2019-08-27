@@ -1,12 +1,9 @@
 #ifndef BROADCAST_SOCKET_H
 #define BROADCAST_SOCKET_H
 #include "UDPSocket.h"
-
-#include <functional>
 #include <thread>
-#ifndef BroadcastRecDataFun
-#define BroadcastRecDataFun std::function<long(const char* ip,unsigned int& port, const char* data, unsigned int dataLen)> 
-#endif//BroadcastRecDataFun
+
+#include "BroadcastComDefine.h"
 
 class BroadcastSocket
 {

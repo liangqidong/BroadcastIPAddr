@@ -1,10 +1,6 @@
 #include "Broadcast.h"
-
 #include <regex> 
-
-#define RecBuffLen  1024
-#define RecTimeOut  100 //ms
-
+#include "BroadcastErrorCode.h"
 BroadcastSocket::BroadcastSocket()
 {
 	m_recDataFun = nullptr;
@@ -28,14 +24,14 @@ BroadcastSocket::~BroadcastSocket()
 long BroadcastSocket::SendData(const char* data, unsigned int& dataLen, const char* addrIP)
 {
 	
-	std::regex regex = std::regex("^(25[0-5]|2[0-4]\\d|[0-1]\\d{2}|[1-9]?\\d)\\.(25[0-5]|2[0-4]\\d|[0-1]\\d{2}|[1-9]?\\d)\\.(25[0-5]|2[0-4]\\d|[0-1]\\d{2}|[1-9]?\\d)\\.(25[0-5]|2[0-4]\\d|[0-1]\\d{2}|[1-9]?\\d)$");
+	std::regex regex = std::regex(REGEX_CHECK_IP);
 	if (!std::regex_match(addrIP, regex))
 	{
 		return -1;
 	}
 
 	unsigned long addr = inet_addr(addrIP);
-	regex = std::regex("^([0])\\.([0])\\.([0])\\.([0])$");
+	regex = std::regex(REGEX_CHECK_0_0_0_0);
 	if (std::regex_match(addrIP, regex))
 	{
 		addr = INADDR_BROADCAST;
@@ -46,7 +42,7 @@ long BroadcastSocket::SendData(const char* data, unsigned int& dataLen, const ch
 long BroadcastSocket::RegRecFun(BroadcastRecDataFun recDataFun)
 {
 	m_recDataFun = recDataFun;
-	return 0;
+	return BEC_SUCCESS;
 }
 
 void BroadcastSocket::RecDataThread()
@@ -78,33 +74,32 @@ void BroadcastSocket::RecDataThread()
 
 long BroadcastSocket::BindReceivePort(unsigned int port)
 {
-	m_udpSocket.SetReceivePort(port);
-	return 0;
+	return m_udpSocket.SetReceivePort(port);;
 }
 
 long BroadcastSocket::bindSendPort(unsigned int port)
 {
-	m_udpSocket.SetSendPort(port);
-	return 0;
+	return m_udpSocket.SetSendPort(port);;
 }
 
 long BroadcastSocket::Process()
 {
 	if (nullptr != m_recDataThread)
 	{
-		return 0;
+		return BEC_FAIL_PTR_IS_NULL;
 	}
 	m_recDataThread = new std::thread(&BroadcastSocket::RecDataThread, this);
+	return BEC_SUCCESS;
 }
 
 long BroadcastSocket::getUDPSocket(UDPSocket** udpSocket)
 {
 	//udpSocket = &m_udpSocket;
-	return 0;
+	return BEC_SUCCESS;
 }
 
 long BroadcastSocket::getThreadobj(std::thread** tThreadobj)
 {
 	//tThreadobj = &m_recDataThread;
-	return 0;
+	return BEC_SUCCESS;
 }

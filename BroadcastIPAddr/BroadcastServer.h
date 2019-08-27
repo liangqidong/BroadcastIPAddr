@@ -1,5 +1,5 @@
-#ifndef BROADCAST_SERVER_H
-#define BROADCAST_SERVER_H
+#ifndef BROADCAST_IP_ADDR_SERVER_H
+#define BROADCAST_IP_ADDR_SERVER_H
 
 #include "Broadcast.h"
 
@@ -12,4 +12,4 @@ public:
 	long Process();
 };
 
-#endif//BROADCAST_SERVER_H
+#endif//BROADCAST_IP_ADDR_SERVER_H
