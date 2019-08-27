@@ -1,46 +1,52 @@
-#include "UDPSocket.h"
+#include "BroadcastServer.h"
+#include "BroadcastClient.h"
 #include <iostream>
 #include <windows.h>
 
+#define Client 
+
 using namespace std;
+BroadcastServer BS;
+BroadcastClient BC;
+long BroadcastDataFun(const char* ip,unsigned port, const char* data, unsigned int dataLen)
+{
+	std::cout << "IP:" << ip << std::endl;
+	std::cout << "port:" << port << std::endl;
+	std::cout << "data:" << data << std::endl;
+	std::cout << "dataLen:" << dataLen << std::endl;
+
+#ifdef Client
+	unsigned int len = sizeof("GetIPAddr");
+	BC.SendData("GetIPAddr", len, ip);
+#else
+	unsigned int len = strlen("GetIPAddr");
+	BS.SendData("GetIPAddr", len, ip);
+#endif
+
+	return 0;
+}
+
 int main()
 {
-// 	//client
-// 	UDPSocket us;
-// 	us.SetBindPort(11121);
-// 	us.SetReceivePort(12811);
-// 	us.bindSocket();
-// 	unsigned int len = sizeof("GetIPAddr");
-// 	us.SendData("GetIPAddr", len);
-// 	char buff[MAX_PATH] = { 0 };
-// 	len = MAX_PATH;
-// 	us.RecvData(buff, len);
+#ifdef Client
+	//client
+	BC.RegRecFun(std::bind(&BroadcastDataFun, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+	BC.bindSendPort(12811);
+	unsigned int len = sizeof("GetIPAddr");
+	BC.Process();
+	BC.SendData("GetIPAddr", len);
 
-	//server
-	UDPSocket us;
-	UDPSocket::IPInfo ipInfo;
-	us.GetLocalIP(ipInfo.ip);
-
-	us.SetBindPort(12811);
-	us.bindSocket();
-	char buff[MAX_PATH] = { 0 };
-	unsigned int len = MAX_PATH;
+#else
+//server
+	BS.RegRecFun(std::bind(&BroadcastDataFun,std::placeholders::_1,std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+	BS.BindReceivePort(12811);
+	BS.Process();
+	unsigned int len = sizeof("GetIPAddr");
+	BS.SendData("GetIPAddr", len);
+#endif
 	while (true)
 	{
-		us.RecvData(buff, len);
-		if (0 == len)
-		{
-			Sleep(10);
-		}
-		else
-		{
-			printf("%s\n", buff);
-			break;
-		}
-		
+		Sleep(100);
 	}
-	
-	len = sizeof("GetIPAddr");
-	us.SendData("GetIPAddr", len);
 	return 0;
 }

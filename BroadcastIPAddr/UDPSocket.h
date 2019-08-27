@@ -12,26 +12,29 @@ public:
 	~UDPSocket();
 	typedef struct tagIPInfo
 	{
-		char ip[30];
+		char ip[MAX_PATH];
 		tagIPInfo()
 		{
-			memset(ip, 0, 30);
+			memset(ip, 0, MAX_PATH);
 		}
 	}IPInfo;
 
+	long SetSendPort(unsigned int port);
 	long SetReceivePort(unsigned int port);
-	long SetBindPort(unsigned int port);
 	long bindSocket();
-	long SendData(char* data, unsigned int& dataLen);
+	long SendData(const char* data, unsigned int& dataLen, unsigned long addr = INADDR_BROADCAST);//addr = inet_addr("127.0.0.1")
 	long RecvData(char* data, unsigned int& dataLen, unsigned int timeout = 50);
-	long GetLocalIP(char* ip);
+	long GetLocalIP(char* ip, unsigned int& dataLen);
 	long GetLocalIPs(IPInfo* ips, int& ipNum);
-	long GetSocketIP(char* ip);
+	long GetSocketIP(char* ip, unsigned int& dataLen);
+	long GetSocketPort(unsigned int& port);
 
 private:
-	SOCKADDR_IN m_clientAddr;
-	SOCKADDR_IN m_bindAddr;
-	SOCKET		m_connectSocket;
+	SOCKADDR_IN m_peeraddr;
+	SOCKET		m_serverSocket;
+	unsigned int m_sendPort;
+	unsigned int m_receivePort;
+	bool		m_bindSocket;
 };
 
 #endif//UDP_SOCKET_H

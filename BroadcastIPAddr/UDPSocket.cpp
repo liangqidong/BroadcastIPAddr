@@ -21,65 +21,96 @@ UDPSocket::UDPSocket()
 		WSACleanup();
 		return ;
 	}
+	m_serverSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	
+	if (INVALID_SOCKET == m_serverSocket)
+	{
+		err = WSAGetLastError();
+		printf("\"socket\" error! error code is %d\n", err);
+		return ;
+	}
+	m_receivePort = 0;
+	m_sendPort = 0;
+	m_bindSocket = false;
 }
 
 UDPSocket::~UDPSocket()
 {
-	closesocket(m_connectSocket); 
+	closesocket(m_serverSocket); 
 	WSACleanup();
+}
+
+long UDPSocket::SetSendPort(unsigned int port)
+{
+	m_sendPort = port;
+	return 0;
 }
 
 long UDPSocket::SetReceivePort(unsigned int port)
 {
-	m_clientAddr.sin_family = AF_INET;
-	m_clientAddr.sin_port = htons(port);
-	m_clientAddr.sin_addr.s_addr = INADDR_BROADCAST;
-	return 0;
-}
-
-long UDPSocket::SetBindPort(unsigned int port)
-{
-	m_bindAddr.sin_family = AF_INET;
-	m_bindAddr.sin_port = htons(port);
-	m_bindAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	m_receivePort = port;
 	return 0;
 }
 
 long UDPSocket::bindSocket()
 {
+	// 绑定套接字 
 	int err = 0;
-	m_connectSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (INVALID_SOCKET == m_connectSocket)
-	{
-		err = WSAGetLastError();
-		printf("\"socket\" error! error code is %d\n", err);
-		return -1;
-	}
-	bool bOpt = true;
-	int a = setsockopt(m_connectSocket, SOL_SOCKET, SO_BROADCAST, (char*)&bOpt, sizeof(bOpt));
-	if (SOCKET_ERROR == a)
-	{
-		err = WSAGetLastError();
-		printf("\"bind\" error! error code is %d\n", err);
-		return -1;
-	}
-	// 绑定套接字   
-	err = bind(m_connectSocket, (sockaddr*)&m_bindAddr, sizeof(sockaddr_in));
+	SOCKADDR_IN serverAddr;
+	serverAddr.sin_family = AF_INET;
+	serverAddr.sin_port = htons(m_receivePort);
+	serverAddr.sin_addr.s_addr = INADDR_ANY;
+
+	err = bind(m_serverSocket, (sockaddr*)&serverAddr, sizeof(sockaddr_in));
 	if (SOCKET_ERROR == err)
 	{
 		err = WSAGetLastError();
 		printf("\"bind\" error! error code is %d\n", err);
 		return -1;
 	}
-
+	m_bindSocket = true;
 	return 0;
 }
 
-long UDPSocket::SendData(char* data, unsigned int& dataLen)
+long UDPSocket::SendData(const char* data, unsigned int& dataLen, unsigned long addr)
 {
-	dataLen = sendto(m_connectSocket, data, dataLen, 0, (sockaddr*)&m_clientAddr, sizeof(SOCKADDR));
+	SOCKADDR_IN clientAddr;
+	memset(clientAddr.sin_zero, 0, 8);
+	int port = m_sendPort;
+	if ( 0 == m_sendPort)
+	{
+		port = ntohs(m_peeraddr.sin_port);
+	}
+	clientAddr.sin_family = AF_INET;
+	clientAddr.sin_port = htons(port);
+	clientAddr.sin_addr.s_addr = addr;
+	SOCKET clientSocket = m_serverSocket;
+	if (m_bindSocket)
+	{
+		clientSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+		if (INVALID_SOCKET == clientSocket)
+		{
+			int err = WSAGetLastError();
+			printf("error! error code is %d/n", err);
+			return -1;
+		}
+	}
+	if (INADDR_BROADCAST == addr)
+	{
+		bool bOpt = true;
+		int a = setsockopt(clientSocket, SOL_SOCKET, SO_BROADCAST, (char*)&bOpt, sizeof(bOpt));
+		if (SOCKET_ERROR == a)
+		{
+			int err = WSAGetLastError();
+			printf("\"SendData setsockopt\" error! error code is %d\n", err);
+			return -1;
+		}
+	}
+	dataLen = sendto(clientSocket, data, dataLen, 0, (SOCKADDR*)&clientAddr, sizeof(SOCKADDR));
 	if (SOCKET_ERROR == dataLen)
 	{
+		int err = WSAGetLastError();
+		printf("\"sendto\" error! error code is %d\n", err);
 		return -1;
 	}
 	return 0;
@@ -91,28 +122,32 @@ long UDPSocket::RecvData(char* data, unsigned int& dataLen, unsigned int timeout
 	int nAddrLen = sizeof(SOCKADDR);
 	fd_set readfds;
 	struct timeval tv;
-	tv.tv_sec = timeout;
-	tv.tv_usec = 0;
+	tv.tv_sec = 0;
+	tv.tv_usec = timeout*1000;
 	FD_ZERO(&readfds);
-	FD_SET(m_connectSocket, &readfds);
-	if (select(m_connectSocket + 1, &readfds, NULL, NULL, &tv) > 0)
+	FD_SET(m_serverSocket, &readfds);
+	if (select(m_serverSocket + 1, &readfds, NULL, NULL, &tv) > 0)
 	{
-		dataLen = recvfrom(m_connectSocket, data, dataLen, 0, (SOCKADDR*)&m_clientAddr, &nAddrLen);
+		printf("recvfrom in!\n");
+		dataLen = recvfrom(m_serverSocket, data, dataLen, 0, (sockaddr*)&m_peeraddr, &nAddrLen);
 		if (SOCKET_ERROR == dataLen)
 		{
 			printf("received data error!\n");
 			return -1;
 		}
+		if (SOCKET_ERROR == dataLen)
+		{
+			return -1;
+		}
 	}
 	else
 	{
-		printf("timeout!there is no data arrived!\n");
 		return -1;
 	}
 	return 0;
 }
 
-long UDPSocket::GetLocalIP(char* ip)
+long UDPSocket::GetLocalIP(char* ip, unsigned int& dataLen)
 {
 	
 	char hostname[256] = { 0 };
@@ -127,7 +162,7 @@ long UDPSocket::GetLocalIP(char* ip)
 	{
 		return -1;
 	}
-	strcpy(ip, inet_ntoa(*(in_addr*)*host->h_addr_list));
+	strcpy_s(ip, dataLen,inet_ntoa(*(in_addr*)*host->h_addr_list));
 	return 0;
 }
 
@@ -156,7 +191,7 @@ long UDPSocket::GetLocalIPs(IPInfo* ips, int& ipNum)
 			{
 				if (ipNum > i)
 				{
-					strcpy(ips[i].ip, pIpAddrString->IpAddress.String);
+					strcpy_s(ips[i].ip, MAX_PATH,pIpAddrString->IpAddress.String);
 				}
 				pIpAddrString = pIpAddrString->Next;
 				i++;
@@ -173,9 +208,15 @@ long UDPSocket::GetLocalIPs(IPInfo* ips, int& ipNum)
 	return 0;
 }
 
-long UDPSocket::GetSocketIP(char* ip)
+long UDPSocket::GetSocketIP(char* ip, unsigned int& dataLen)
 {
-	strcpy(ip, inet_ntoa(m_clientAddr.sin_addr));
+	strcpy_s(ip, dataLen,inet_ntoa(m_peeraddr.sin_addr));
+	return 0;
+}
+
+long UDPSocket::GetSocketPort(unsigned int& port)
+{
+	port = ntohs(m_peeraddr.sin_port);
 	return 0;
 }
 
