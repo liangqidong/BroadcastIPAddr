@@ -35,7 +35,6 @@ int main()
 	unsigned int len = sizeof("GetIPAddr");
 	BC.Process();
 	BC.SendData("GetIPAddr", len);
-
 #else
 //server
 	BS.RegRecFun(std::bind(&BroadcastDataFun,std::placeholders::_1,std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));

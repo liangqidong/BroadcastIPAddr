@@ -32,6 +32,7 @@ public:
 private:
 	SOCKADDR_IN m_peeraddr;
 	SOCKET		m_serverSocket;
+	SOCKET		m_clientSocket;
 	unsigned int m_sendPort;
 	unsigned int m_receivePort;
 	bool		m_bindSocket;

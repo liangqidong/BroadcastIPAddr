@@ -29,6 +29,13 @@ UDPSocket::UDPSocket()
 		printf("\"socket\" error! error code is %d\n", err);
 		return ;
 	}
+	m_clientSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (INVALID_SOCKET == m_clientSocket)
+	{
+		int err = WSAGetLastError();
+		printf("error! error code is %d/n", err);
+		return ;
+	}
 	m_receivePort = 0;
 	m_sendPort = 0;
 	m_bindSocket = false;
@@ -85,16 +92,12 @@ long UDPSocket::SendData(const char* data, unsigned int& dataLen, unsigned long 
 	clientAddr.sin_port = htons(port);
 	clientAddr.sin_addr.s_addr = addr;
 	SOCKET clientSocket = m_serverSocket;
+
 	if (m_bindSocket)
 	{
-		clientSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-		if (INVALID_SOCKET == clientSocket)
-		{
-			int err = WSAGetLastError();
-			printf("error! error code is %d/n", err);
-			return -1;
-		}
+		clientSocket = m_clientSocket;
 	}
+
 	if (INADDR_BROADCAST == addr)
 	{
 		bool bOpt = true;
@@ -106,6 +109,7 @@ long UDPSocket::SendData(const char* data, unsigned int& dataLen, unsigned long 
 			return -1;
 		}
 	}
+
 	dataLen = sendto(clientSocket, data, dataLen, 0, (SOCKADDR*)&clientAddr, sizeof(SOCKADDR));
 	if (SOCKET_ERROR == dataLen)
 	{
